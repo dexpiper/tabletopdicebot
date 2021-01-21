@@ -27,10 +27,10 @@ Project is created with:
 
 ### Scope of functionalities
 
-Command Syntax:
+**Command Syntax:**
 
 */roll {dice} {dice} {dice}... + 2 Description*,
-where *dice* has a classic form like *2d20*, where the first number is the number of dices (up to 99), and the second - the amount of sides (up to 999).
+where *dice* has a classic form like *2d20*: the first number is the number of dices (up to 99), and the second - the amount of sides (up to 999).
 
 Basic **single dice rolls** can be performed with */roll d20* or simple */roll20*, number of dices (aka 2d20) is optional. *d4, d6, d8, d10, d12, d20* supported as basic dices for /roll{dice} commands.
 
