@@ -42,7 +42,7 @@ Project is created with:
 
 where *dice* has a classic form like *2d20*: the first number is the number of dices (up to 99), and the second - the amount of sides (up to 999).
 
-Basic **single dice rolls** can be performed with */roll d20* or simple */roll20*, number of dices (aka 2d20) is optional. *d4, d6, d8, d10, d12, d20* supported as basic dices for /roll{dice} commands.
+Basic **single dice rolls** can be performed with */roll d20* or simple */roll20*, number of dices (aka 1d20) is optional. *d4, d6, d8, d10, d12, d20* supported as basic dices for /roll{dice} commands.
 
 **Addition modifiers** can be positive or negative: */roll d20 - 2, /roll d20 + 2*
 
