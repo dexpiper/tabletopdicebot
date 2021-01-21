@@ -3,15 +3,6 @@
 Telegram bot for rolling dices in RPG-like games with some handy advanced features.
 Currently available at https://t.me/tabletop_dice_bot, deployed at Heroku.
 
-```@username rolled 3d20 1d4  + 2 ----> Dexterity:
-
-🎲 1: rolling 3d20:
- ⚡️20! + 6 + 13 = 39
-🎲 2: rolling 1d4: ---> 1
-➕ Modifier: + 2
-📋 Result: 42
-```
-
 ### Table of contents
 * [Introduction](#introduction)
 * [Technologies and libraries](#technologies-and-libraries)
@@ -24,7 +15,16 @@ In spite of dozens dice bot exist in Telegram, few of them are suitable for onli
 
 All this issues are taken in account in this bot. It supports multiple rolls with multiple dices and dicetypes, modifiers (+ n and - n) and roll descriptions.
 
-**Example:** /roll 2d20 d4 - 2 *Dexterity*
+**Example:** /roll 3d20 d4 + 2 *Dexterity*
+
+```@username rolled 3d20 1d4  + 2 ----> Dexterity:
+
+🎲 1: rolling 3d20:
+ ⚡️20! + 6 + 13 = 39
+🎲 2: rolling 1d4: ---> 1
+➕ Modifier: + 2
+📋 Result: 42
+```
 
 ### Technologies and libraries
 
