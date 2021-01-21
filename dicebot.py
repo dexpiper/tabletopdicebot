@@ -60,49 +60,31 @@ def roll_anything(message):
 
 @bot.message_handler(commands=['roll20'])
 def roll_20(message):
-    """
-    Answering to the /roll command
-    """
     roller = rolldice.DiceRoller('/roll d20 ' + message.text[6:])
     rolling(message, roller=roller)
 
 @bot.message_handler(commands=['roll12'])
 def roll_12(message):
-    """
-    Answering to the /roll command
-    """
     roller = rolldice.DiceRoller('/roll d12 ' + message.text[6:])
     rolling(message, roller=roller)
 
 @bot.message_handler(commands=['roll10'])
 def roll_10(message):
-    """
-    Answering to the /roll command
-    """
     roller = rolldice.DiceRoller('/roll d10 ' + message.text[6:])
     rolling(message, roller=roller)
 
 @bot.message_handler(commands=['roll8'])
 def roll_8(message):
-    """
-    Answering to the /roll command
-    """
     roller = rolldice.DiceRoller('/roll d8 ' + message.text[5:])
     rolling(message, roller=roller)
 
 @bot.message_handler(commands=['roll6'])
 def roll_6(message):
-    """
-    Answering to the /roll command
-    """
     roller = rolldice.DiceRoller('/roll d6 ' + message.text[5:])
     rolling(message, roller=roller)
 
 @bot.message_handler(commands=['roll4'])
 def roll_4(message):
-    """
-    Answering to the /roll command
-    """
     roller = rolldice.DiceRoller('/roll d4 ' + message.text[5:])
     rolling(message, roller=roller)
 
@@ -119,7 +101,7 @@ def rolling(message, roller=False):
 
     username = message.from_user.username
     if roller.valid:
-        # rolling dice, condtructing raw log message
+        # rolling dice, constructing raw log message
         result = roller.roll()
         the_log = roller.log
 
