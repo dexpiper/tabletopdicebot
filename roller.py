@@ -3,14 +3,18 @@ import re
 from collections import namedtuple
 
 
-def rolling(message, bot, roller=False):
+def rolling(message, bot, formula='', roller=False):
     """
     TODO: rewrite roller
     """
     if not roller:
-        roller = DiceRoller(message.text)
+        if formula:
+            roller = DiceRoller(formula)
+        else:
+            roller = DiceRoller(message.text)
 
     username = message.from_user.username
+
     if roller.valid:
         # rolling dice, constructing raw log message
         result = roller.roll()
@@ -50,10 +54,17 @@ def rolling(message, bot, roller=False):
             parse_mode='HTML'
             )
     else:
-        ready_message_for_user = (
-            '\U0001F6D1 <b>Sorry, this format is not acceptable.</b>\n'
-            '<i>Check the example:</i> <b>2d100 + 2</b>'
-        )
+        if not formula:
+            ready_message_for_user = (
+                '\U0001F6D1 <b>Sorry, this format is not acceptable.</b>\n'
+                '<i>Check the example:</i> <b>2d100 + 2</b>'
+            )
+        else:
+            ready_message_for_user = (
+                f'\U0001F6D1 <b>Sorry, this format {formula} '
+                'is not acceptable.</b>\n'
+                '<i>Check the example:</i> <b>2d100 + 2</b>'
+            )
         bot.reply_to(
             message,
             ready_message_for_user,

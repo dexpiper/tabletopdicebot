@@ -16,6 +16,9 @@ if not TOKEN:
 if not URL:
     botlogger.warning('URL should be defined as system var')
 
+# starting database
+botlogger.info('Starting database...')
+import db  # noqa E402
 
 # Setting bot
 bot = telebot.TeleBot(TOKEN)

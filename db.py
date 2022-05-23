@@ -39,7 +39,9 @@ class Char(db.Entity):
     active = Required(bool, default=False)
 
     def throw(self, name):
-        return self.throws.filter(lambda x: x.name == name).get().formula
+        requested_throw = self.throws.filter(lambda x: x.name == name).get()
+        if requested_throw:
+            return requested_throw.formula
 
     def get_attribute(self, key, alias=False):
         if alias:
@@ -84,11 +86,12 @@ set_sql_debug(True)
 
 if __name__ == '__main__':
     with db_session:
-        alex = User(user_id=1234)
+        alex = User(user_id=138946204)
         tall = Char(owner=alex, name='Tall', active=True)
         dex = Attribute(
             char=tall, name='Dexterity', alias='DEX',
             value=20, modifier=Attribute.get_modifier(20)
         )
         throw = Throw(char=tall, name='MyThrow', formula='1d20 + $DEX')
+        throw2 = Throw(char=tall, name='Wisdom', formula='1d20 2d4 + 3')
     print('Everything should be commited by now')

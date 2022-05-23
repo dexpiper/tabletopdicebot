@@ -2,8 +2,11 @@ import functools
 import logging
 
 from flask import current_app
+from pony.orm import db_session
+from pony.orm.core import ObjectNotFound
 
 from roller import DiceRoller, rolling
+from db import User, Char, Throw, Attribute  # noqa F401
 
 
 app = current_app
@@ -54,18 +57,86 @@ class BotHandlers:
             return wrapper_register
         return decorator_register
 
+    #
+    # Service handlers
+    #
     @handler(append_to=handlers, commands=['start'])
     def answer_start(message):
         """
         Bot sends welcome message
         """
-        botlogger.debug('Start message recieved')
         bot.send_message(
             message.chat.id,
             'Hello! This is beta-version of TabletopDiceBot!',
             parse_mode='HTML'
         )
 
+    #
+    # Managing user settings handlers
+    #
+    @handler(append_to=handlers, commands=['chars'])
+    @db_session
+    def show_user_chars_list(message):
+        """
+        Show charlist for user
+        """
+        user_id = message.from_user.id
+        try:
+            user = User[user_id]
+        except ObjectNotFound:
+            bot.reply_to(
+                message,
+                '\U0001F6D1 <b>Sorry, you are not registered</b>',
+                parse_mode='HTML'
+            )
+            return
+        if not len(user.chars):
+            bot.reply_to(
+                message,
+                '\U0001F6D1 <b>Sorry, you have no chars</b>',
+                parse_mode='HTML'
+            )
+            return
+
+        descrs = []
+        for char in user.chars:
+            active = '   (<b>ACTIVE</b>)' if char.active else ''
+            throws = []
+            attributes = []
+            if len(char.throws):
+                for throw in char.throws:
+                    throw_description = (
+                        f'\U0001F3B2 {throw.name}: <i>{throw.formula}</i>\n'
+                    )
+                    throws.append(throw_description)
+            if len(char.attributes):
+                for attr in char.attributes:
+                    attr_description = (
+                        f'\U00003030 <b>{attr.name}</b> '
+                        f'(${attr.alias or "NO_ALIAS"}): '
+                        f'<i>{attr.value}</i> '
+                        f'Modifier: <b>{attr.modifier}</b>\n\n'
+                    )
+                    attributes.append(attr_description)
+            char_description = (
+                f'\U0001F9DD <b>Name:</b> {char.name} '
+                f'{active}\n\n'
+                '<b>Throws</b>: \n'
+                f'{"".join(throws)}\n'
+                '<b>Attributes:</b> \n'
+                f'{"".join(attributes)}\n\n'
+            )
+            descrs.append(char_description)
+
+        bot.reply_to(
+                message,
+                '/n'.join(descrs),
+                parse_mode='HTML'
+            )
+
+    #
+    # Rolls handlers
+    #
     @handler(append_to=handlers, commands=['roll'])
     def roll_anything(message):
         """
@@ -73,6 +144,39 @@ class BotHandlers:
         """
         rolling(message, bot)
 
+    @handler(append_to=handlers, commands=['rollme'])
+    @db_session
+    def roll_custom_throw(message):
+        """
+        Rolling pre-defined throws by name
+        """
+        user_id = message.from_user.id
+        try:
+            user = User[user_id]
+        except ObjectNotFound:
+            bot.reply_to(
+                message,
+                '\U0001F6D1 <b>Sorry, you are not registered</b>',
+                parse_mode='HTML'
+            )
+            return
+        userchar = user.active_char()
+        if userchar:
+            throwname = message.text[7:].strip()
+            formula = userchar.throw(throwname)
+        if formula:
+            rolling(message, bot, formula=' ' + formula)
+        else:
+            bot.reply_to(
+                message,
+                f'\U0001F6D1 <b>Sorry, such Throw ({throwname}) is not '
+                f'registered for your active char {userchar.name}</b>',
+                parse_mode='HTML'
+            )
+
+    #
+    # Roll shorthands
+    #
     @handler(commands=['roll20'])
     def roll_20(message):
         roller = DiceRoller('/roll d20 ' + message.text[6:])
