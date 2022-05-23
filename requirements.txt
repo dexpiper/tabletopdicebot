@@ -1,2 +1,4 @@
 pony
 psycopg2-binary
+flask
+pyTelegramBotAPI

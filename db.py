@@ -1,9 +1,8 @@
 from pony.orm import Database, set_sql_debug
 from pony.orm import PrimaryKey, Required, Optional, Set
-
 from pony.orm import db_session
 
-from common.helpers import modifier_dictionary
+from helpers import modifier_dictionary
 
 
 db = Database()
@@ -75,6 +74,10 @@ class Attribute(db.Entity):
 
 
 db.bind(provider='sqlite', filename='dice.sqlite', create_db=True)
+# db.bind(
+#    provider='postgres', user='dicebot', password='12345678',
+#    host='', database='postgres'
+# )
 db.generate_mapping(create_tables=True)
 set_sql_debug(True)
 
