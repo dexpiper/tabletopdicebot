@@ -1,8 +1,9 @@
 from pony.orm import Database, set_sql_debug
 from pony.orm import PrimaryKey, Required, Optional, Set
 from pony.orm import db_session
+from pony.orm.core import ObjectNotFound, TransactionIntegrityError
 
-from helpers import modifier_dictionary
+from common.helpers import modifier_dictionary
 
 
 db = Database()
@@ -12,11 +13,43 @@ class User(db.Entity):
     user_id = PrimaryKey(int, auto=False)
     chars = Set('Char')
 
+    @classmethod
+    @db_session
+    def get_user_by_id(cls, user_id: int):
+        """
+        Should always be used inside handlers instead of User[1234]
+        """
+        try:
+            return cls[user_id]
+        except ObjectNotFound:
+            return cls.register_user(user_id)
+
+    @classmethod
+    def register_user(cls, user_id: int):
+        """
+        Try to make a User with the user_id
+        """
+        with db_session:
+            try:
+                user = User(user_id=user_id)
+                return user
+            except TransactionIntegrityError:
+                pass
+
+    @db_session
     def active_char(self):
+        """
+        Return active char for current user instance
+        """
         return self.chars.filter(lambda x: x.active).get()
 
     @db_session
     def set_active_char(self, charname):
+        """
+        Should be used inside try/except. Check that in any case only
+        one character would be active, safe to use on already active
+        character.
+        """
         if not self.chars.count():
             raise IndexError(f'User {self.user_id} has not any chars yet.')
         char = self.chars.filter(lambda x: x.name == charname).get()
@@ -38,12 +71,12 @@ class Char(db.Entity):
     attributes = Set('Attribute')
     active = Required(bool, default=False)
 
-    def throw(self, name):
+    def throw(self, name: str) -> str:
         requested_throw = self.throws.filter(lambda x: x.name == name).get()
         if requested_throw:
             return requested_throw.formula
 
-    def get_attribute(self, key, alias=False):
+    def get_attribute(self, key: str, alias: bool = False) -> int:
         if alias:
             by_alias = self.attributes.filter(
                 lambda x: x.alias == key).get()
@@ -59,7 +92,7 @@ class Char(db.Entity):
 
 class Throw(db.Entity):
     char = Required(Char)
-    name = Required(str, unique=True)
+    name = Required(str)
     formula = Required(str)
 
 
@@ -71,7 +104,10 @@ class Attribute(db.Entity):
     modifier = Optional(int)
 
     @staticmethod
-    def get_modifier(value):
+    def get_modifier(value: int) -> int:
+        """
+        Get proper modifier for given characteristic value
+        """
         return modifier_dictionary.get(value, 0)
 
 
@@ -94,4 +130,11 @@ if __name__ == '__main__':
         )
         throw = Throw(char=tall, name='MyThrow', formula='1d20 + $DEX')
         throw2 = Throw(char=tall, name='Wisdom', formula='1d20 2d4 + 3')
+        alice = Char(owner=alex, name='Alice')
+        strength = Attribute(
+            char=alice, name='Strength', alias='STR',
+            value=15, modifier=Attribute.get_modifier(15)
+        )
+        throw3 = Throw(char=alice, name='MyThrow3', formula='1d20 + $DEX')
+        throw4 = Throw(char=alice, name='Insight', formula='1d20 2d4 + 3')
     print('Everything should be commited by now')

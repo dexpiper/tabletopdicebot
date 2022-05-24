@@ -1,0 +1,22 @@
+{% if user.chars|length < 1 %}
+    {{ emoji.pencil }} You have no chars yet. To create one, call /create
+{% endif %}
+
+
+{%- for char in user.chars -%}
+    {{ emoji.elf }} <b>Name:</b> {{ char.name }} {% if char.active %} {{ emoji.chess }} {% endif %}
+
+
+    {# Throws #}
+    <b>Throws:</b>
+        {% for throw in char.throws %}
+            {{ emoji.dice }} {{ throw.name }}: <i>{{ throw.formula }}</i>
+        {% endfor %}
+
+    {# Attribute #}
+    <b>Attributes:</b>
+        {% for attr in char.attributes %}
+            {{ emoji.gear }} <b>{{ attr.name }}</b> Alias: {% if attr.alias %} ${{ attr.alias }} {% else %} No alias {% endif %} Value: <b><i>{{ attr.value }}</i></b> Modifier: <b>{{ attr.modifier }}</b>
+        {% endfor %}
+
+{% endfor %}

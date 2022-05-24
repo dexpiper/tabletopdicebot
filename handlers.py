@@ -3,12 +3,13 @@ import logging
 
 from flask import current_app
 from pony.orm import db_session
-from pony.orm.core import ObjectNotFound
 
+import views
 from roller import DiceRoller, rolling
-from db import User, Char, Throw, Attribute  # noqa F401
+from models import User, Char, Throw, Attribute  # noqa F401
 
 
+# getting data from flask.app_context
 app = current_app
 with app.app_context():
     bot = app.config['TELEBOT']
@@ -57,17 +58,23 @@ class BotHandlers:
             return wrapper_register
         return decorator_register
 
+############################################################
+#                                                          #
+#                  BOT MESSAGE HANDLERS                    #
+#                                                          #
+############################################################
+
     #
     # Service handlers
     #
-    @handler(append_to=handlers, commands=['start'])
+    @handler(append_to=handlers, commands=['start', 'help'])
     def answer_start(message):
         """
-        Bot sends welcome message
+        Bot sends general help page and basic bot info
         """
         bot.send_message(
             message.chat.id,
-            'Hello! This is beta-version of TabletopDiceBot!',
+            views.hello(message.from_user.username),
             parse_mode='HTML'
         )
 
@@ -81,56 +88,11 @@ class BotHandlers:
         Show charlist for user
         """
         user_id = message.from_user.id
-        try:
-            user = User[user_id]
-        except ObjectNotFound:
-            bot.reply_to(
-                message,
-                '\U0001F6D1 <b>Sorry, you are not registered</b>',
-                parse_mode='HTML'
-            )
-            return
-        if not len(user.chars):
-            bot.reply_to(
-                message,
-                '\U0001F6D1 <b>Sorry, you have no chars</b>',
-                parse_mode='HTML'
-            )
-            return
-
-        descrs = []
-        for char in user.chars:
-            active = '   (<b>ACTIVE</b>)' if char.active else ''
-            throws = []
-            attributes = []
-            if len(char.throws):
-                for throw in char.throws:
-                    throw_description = (
-                        f'\U0001F3B2 {throw.name}: <i>{throw.formula}</i>\n'
-                    )
-                    throws.append(throw_description)
-            if len(char.attributes):
-                for attr in char.attributes:
-                    attr_description = (
-                        f'\U00003030 <b>{attr.name}</b> '
-                        f'(${attr.alias or "NO_ALIAS"}): '
-                        f'<i>{attr.value}</i> '
-                        f'Modifier: <b>{attr.modifier}</b>\n\n'
-                    )
-                    attributes.append(attr_description)
-            char_description = (
-                f'\U0001F9DD <b>Name:</b> {char.name} '
-                f'{active}\n\n'
-                '<b>Throws</b>: \n'
-                f'{"".join(throws)}\n'
-                '<b>Attributes:</b> \n'
-                f'{"".join(attributes)}\n\n'
-            )
-            descrs.append(char_description)
-
+        user = User.get_user_by_id(user_id)
+        ready_text = views.charlist(user)
         bot.reply_to(
                 message,
-                '/n'.join(descrs),
+                ready_text,
                 parse_mode='HTML'
             )
 
@@ -151,26 +113,30 @@ class BotHandlers:
         Rolling pre-defined throws by name
         """
         user_id = message.from_user.id
-        try:
-            user = User[user_id]
-        except ObjectNotFound:
+        user = User.get_user_by_id(user_id)
+        userchar = user.active_char()
+        if not userchar:
+            error_text = (
+                'Sorry, you have no active character. '
+                'Call /createchar to create one!'
+            )
             bot.reply_to(
                 message,
-                '\U0001F6D1 <b>Sorry, you are not registered</b>',
+                views.error(error_text),
                 parse_mode='HTML'
             )
-            return
-        userchar = user.active_char()
-        if userchar:
-            throwname = message.text[7:].strip()
-            formula = userchar.throw(throwname)
+        throwname = message.text[7:].strip()
+        formula = userchar.throw(throwname)
         if formula:
             rolling(message, bot, formula=' ' + formula)
         else:
+            error_text = (
+                f'Sorry, such Throw ({throwname}) is not '
+                f'registered for your active char {userchar.name}'
+            )
             bot.reply_to(
                 message,
-                f'\U0001F6D1 <b>Sorry, such Throw ({throwname}) is not '
-                f'registered for your active char {userchar.name}</b>',
+                views.error(error_text),
                 parse_mode='HTML'
             )
 

@@ -1,4 +1,6 @@
 modifier_dictionary = {
+    # is used to convert basic characteristic value
+    # into proper modifier.
     1: -5,
     2: -4, 3: -4,
     4: -3, 5: -3,

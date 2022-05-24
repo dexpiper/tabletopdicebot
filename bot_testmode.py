@@ -18,7 +18,7 @@ if not URL:
 
 # starting database
 botlogger.info('Starting database...')
-import db  # noqa E402
+import models  # noqa E402
 
 # Setting bot
 bot = telebot.TeleBot(TOKEN)
@@ -41,7 +41,7 @@ with app.app_context():
 
 def run_long_polling():
     botlogger.info('Starting polling...')
-    bot.infinity_polling()
+    bot.infinity_polling(skip_pending=True)
 
 
 if __name__ == '__main__':
