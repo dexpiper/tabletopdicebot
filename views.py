@@ -35,3 +35,11 @@ def error(error_text: str):
     """
     template = env.get_template("error.jinja2")
     return template.render(error_text=error_text, emoji=emoji)
+
+
+def roll(roller: object):
+    """
+    Render roll template
+    """
+    template = env.get_template("roll.jinja2")
+    return template.render(roller=roller, emoji=emoji)

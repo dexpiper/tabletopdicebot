@@ -8,4 +8,5 @@ emoji = {
     'clamp': '\U0001F5DC',
     'stop': '\U0001F6D1',
     'exclamation': '\U00002757',
+    'report': '\U0001F4CB',
 }
