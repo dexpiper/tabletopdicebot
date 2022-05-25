@@ -1,4 +1,4 @@
-from pony.orm import Database, set_sql_debug
+from pony.orm import Database  # , set_sql_debug
 from pony.orm import PrimaryKey, Required, Optional, Set
 from pony.orm import db_session
 from pony.orm.core import ObjectNotFound, TransactionIntegrityError
@@ -71,11 +71,13 @@ class Char(db.Entity):
     attributes = Set('Attribute')
     active = Required(bool, default=False)
 
+    @db_session
     def throw(self, name: str) -> str:
         requested_throw = self.throws.filter(lambda x: x.name == name).get()
         if requested_throw:
             return requested_throw.formula
 
+    @db_session
     def get_attribute(self, key: str, alias: bool = False) -> int:
         if alias:
             by_alias = self.attributes.filter(
@@ -117,7 +119,7 @@ db.bind(provider='sqlite', filename='dice.sqlite', create_db=True)
 #    host='', database='postgres'
 # )
 db.generate_mapping(create_tables=True)
-set_sql_debug(True)
+# set_sql_debug(True)
 
 
 if __name__ == '__main__':
@@ -130,6 +132,7 @@ if __name__ == '__main__':
         )
         throw = Throw(char=tall, name='MyThrow', formula='1d20 + $DEX')
         throw2 = Throw(char=tall, name='Wisdom', formula='1d20 2d4 + 3')
+
         alice = Char(owner=alex, name='Alice')
         strength = Attribute(
             char=alice, name='Strength', alias='STR',

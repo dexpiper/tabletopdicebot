@@ -37,7 +37,7 @@ def error(error_text: str):
     return template.render(error_text=error_text, emoji=emoji)
 
 
-def roll(roller: object):
+def roll(roller: object, hand: object):
     """
     Render roll template
     """
