@@ -5,7 +5,7 @@ from flask import current_app
 from pony.orm import db_session
 
 import views
-from roller2 import DiceRoller
+from roller import DiceRoller
 from models import User, Char, Throw, Attribute  # noqa F401
 
 
@@ -81,7 +81,7 @@ class BotHandlers:
     #
     # Managing user settings handlers
     #
-    @handler(append_to=handlers, commands=['chars'])
+    @handler(append_to=handlers, commands=['char', 'chars'])
     @db_session
     def show_user_chars_list(message):
         """
@@ -106,7 +106,7 @@ class BotHandlers:
         Answering to the /roll command
         """
         telegram_user = message.from_user
-        raw_formula = message.text[5:]
+        raw_formula = message.text[6:]  # removeprefix /roll
         roller = DiceRoller(raw_formula, telegram_user)
         hand = roller.hand
         ready_text = views.roll(roller, hand)
@@ -116,7 +116,6 @@ class BotHandlers:
             parse_mode='HTML'
         )
 
-'''
     @handler(append_to=handlers, commands=['rollme'])
     @db_session
     def roll_custom_throw(message):
@@ -136,10 +135,18 @@ class BotHandlers:
                 views.error(error_text),
                 parse_mode='HTML'
             )
+            return
         throwname = message.text[7:].strip()
         formula = userchar.throw(throwname)
         if formula:
-            rolling(message, bot, formula=' ' + formula)
+            roller = DiceRoller(formula, message.from_user)
+            hand = roller.hand
+            ready_text = views.roll(roller, hand)
+            bot.reply_to(
+                message,
+                ready_text,
+                parse_mode='HTML'
+            )
         else:
             error_text = (
                 f'Sorry, such Throw ({throwname}) is not '
@@ -156,31 +163,36 @@ class BotHandlers:
     #
     @handler(commands=['roll20'])
     def roll_20(message):
-        roller = DiceRoller('/roll d20 ' + message.text[6:])
-        rolling(message, bot, roller=roller)
+        shorthand(message, 20)
 
     @handler(commands=['roll12'])
     def roll_12(message):
-        roller = DiceRoller('/roll d12 ' + message.text[6:])
-        rolling(message, bot, roller=roller)
+        shorthand(message, 12)
 
     @handler(commands=['roll10'])
     def roll_10(message):
-        roller = DiceRoller('/roll d10 ' + message.text[6:])
-        rolling(message, bot, roller=roller)
+        shorthand(message, 10)
 
     @handler(commands=['roll8'])
     def roll_8(message):
-        roller = DiceRoller('/roll d8 ' + message.text[5:])
-        rolling(message, bot, roller=roller)
+        shorthand(message, 8)
 
     @handler(commands=['roll6'])
     def roll_6(message):
-        roller = DiceRoller('/roll d6 ' + message.text[5:])
-        rolling(message, bot, roller=roller)
+        shorthand(message, 6)
 
     @handler(commands=['roll4'])
     def roll_4(message):
-        roller = DiceRoller('/roll d4 ' + message.text[5:])
-        rolling(message, bot, roller=roller)
-'''
+        shorthand(message, 4)
+
+
+def shorthand(message, dice: int):
+    descr = message.text[8:] if dice > 9 else message.text[7:]
+    roller = DiceRoller(f'/roll d{dice} ' + descr, message.from_user)
+    hand = roller.hand
+    ready_text = views.roll(roller, hand)
+    bot.reply_to(
+            message,
+            ready_text,
+            parse_mode='HTML'
+        )

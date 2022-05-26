@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from pony.orm import Database  # , set_sql_debug
 from pony.orm import PrimaryKey, Required, Optional, Set
 from pony.orm import db_session
@@ -78,22 +80,20 @@ class Char(db.Entity):
             return requested_throw.formula
 
     @db_session
-    def get_attribute(self, key: str, alias: bool = False,
-                      return_name: bool = False) -> int:
-        if alias:
-            by_alias = self.attributes.filter(
-                lambda x: x.alias == key).get()
-            if by_alias:
-                if not return_name:
-                    return by_alias.modifier
-                else:
-                    return by_alias.modifier, by_alias.name
+    def get_attribute_by_alias(self, alias: str) -> Tuple[int, str]:
+        attr = self.attributes.filter(
+            lambda x: x.alias == alias).get()
+        if attr:
+            return attr.modifier, attr.name
+        else:
+            return None, None
 
-        if not alias:
-            by_name = self.attributes.filter(
-                lambda x: x.name == key).get()
-            if by_name:
-                return by_name.modifier
+    @db_session
+    def get_attribute_by_name(self, name: str) -> int:
+        by_name = self.attributes.filter(
+            lambda x: x.name == name).get()
+        if by_name:
+            return by_name.modifier
 
 
 class Throw(db.Entity):

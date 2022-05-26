@@ -1,341 +1,160 @@
-import random
 import re
-from collections import namedtuple
+import random
+from typing import List, Tuple
+
+from models import User, Char
+from common.unicode import emoji
 
 
-def rolling(message, bot, formula='', roller=False):
-    """
-    TODO: rewrite roller
-    """
-    if not roller:
-        if formula:
-            roller = DiceRoller(formula)
-        else:
-            roller = DiceRoller(message.text)
+class DiceGroup:
 
-    username = message.from_user.username
+    def __init__(self, number: int = 1, value: int = 1):
+        self.number: int = number
+        self.value: int = value
+        self._results: List[int] = []
 
-    if roller.valid:
-        # rolling dice, constructing raw log message
-        result = roller.roll()
-        the_log = roller.log
+    @property
+    def results(self):
+        if self._results:
+            return self._results
+        roll_results: List[int] = []
+        for i in range(self.number):
+            roll_results.append(random.randint(1, self.value))
+        self._results = roll_results
+        return self._results
 
-        # cooking answer
-        if roller.addition and roller.addition > 0:
-            mod = '\U00002795 <b>Modifier: + {}</b>'.format(roller.addition)
-        elif roller.addition and roller.addition < 0:
-            mod = '\U00002796 <b>Modifier: - {}</b>'.format(
-                abs(roller.addition)
-            )
-        else:
-            mod = ''
+    @property
+    def verbose(self):
+        return ' + '.join(
+            [
+                ''.join([emoji['lightning'], str(r)])
+                if r == self.value else str(r)
+                for r in self.results
+            ]
+        )
 
-        if roller.description:
-            descr = '<b>----> {}</b>'.format(roller.description)
-        else:
-            descr = ''
-
-        ready_message_for_user = (
-            '@{username} rolled <b><i>{dice}</i></b> {descr}:\n'
-            '{log}{mod}\n'
-            '\U0001F4CB <b>Result:</b> <b>{result}</b>'
-            ).format(
-                dice=roller,
-                log=the_log,
-                username=username,
-                result=result,
-                mod=mod,
-                descr=descr
-            )
-
-        bot.reply_to(
-            message,
-            ready_message_for_user,
-            parse_mode='HTML'
-            )
-    else:
-        if not formula:
-            ready_message_for_user = (
-                '\U0001F6D1 <b>Sorry, this format is not acceptable.</b>\n'
-                '<i>Check the example:</i> <b>2d100 + 2</b>'
-            )
-        else:
-            ready_message_for_user = (
-                f'\U0001F6D1 <b>Sorry, this format {formula} '
-                'is not acceptable.</b>\n'
-                '<i>Check the example:</i> <b>2d100 + 2</b>'
-            )
-        bot.reply_to(
-            message,
-            ready_message_for_user,
-            parse_mode='HTML'
-            )
-
-
-class StringConstructor:
-    """
-    Class for constructing log strings
-    """
-    def __init__(self):
-        self.log = ''
-
-    def append(self, arg, ends=False):
-        self.log += arg
-        if ends:
-            self.log += ends
-
-    def replace(self, old, new):
-        self.log = self.log.replace(old, new)
+    @property
+    def summary(self):
+        return sum(self.results)
 
     def __repr__(self):
-        return self.log
+        return f'{self.number}d{self.value}'
+
+
+class Hand:
+    def __init__(self):
+        self.dices: List[DiceGroup] = []
+        self.attrs: List[Tuple[int, str]] = []
+        self.modifiers: List[int] = []
+        self.description: str = ''
+
+    @property
+    def result(self):
+        dices_result = sum([sum(dg.results) for dg in self.dices])
+        return (
+            dices_result +
+            sum([attr[0] for attr in self.attrs if attr[0]]) +
+            sum(self.modifiers)
+        )
+
+    def __repr__(self):
+        return (
+            f'Dices: {self.dices} '
+            f'Attrs: {self.attrs} '
+            f'Mods: {self.modifiers} '
+            f'Descr: {self.description} '
+            f'Result: {self.result}'
+        )
 
 
 class DiceRoller:
-    """
-    Class to deal with dice rolls.
 
-    Usage:
+    def __init__(self, raw_formula: str, telegram_user_object: object):
+        self.formula: str = raw_formula
+        self.user_id: int = telegram_user_object.id
+        self.char: Char = self._get_char()
+        self.name: str = ''
+        self._hand: Hand = None
 
-    roller = DiceRoller(message.text)
-    if roller.valid:
-        result = roller.dice.roll()
-        ready_message_for_user = roller.dice.log
-
-    """
-    # Dice object represented as collections.namedtuple
-    Dice = namedtuple('Dice', 'dice, number')
-
-    def __init__(self, command: str):
-        """
-        command - text sent by the user
-
-        expected pattern:
-        '/roll <x>d<n> (<x>d<n>...) + <add> + <description>'
-        Example: /roll 2d6 1d20 - 2 Dexterity
-        """
-
-        self._command = command + ' '
-        self.dices = False
-        self.description = False
-        self.addition = False
-        self.valid = self.examine()
-        self.result = False
-        self.log = StringConstructor()
-
-    def examine(self):
-        """
-        Founds variables in the command sent by the user, returns True
-        if the command is valid
-        """
-
-        regexes = {
-            # regex for every dice in a command
-            'dices': r'(\s\d?\d?[d, D, д, Д]\d{1,3})',
-            # roll with a positive addition (2d100 + 3 ==> 3)
-            'add_positive': r'[d, D, д, Д]\d{1,3}\s?\+\s?(\d{1,3})',
-            # roll with a negative addition (2d100 + 3 ==> 3)
-            'add_negative': r'[d, D, д, Д]\d{1,3}\s?-\s?(\d{1,3})',
-            # description
-            'description': r'/roll.*\s([a-zA-Zа-яА-Я!]{1,15}\s?[-_!\?@\*&%$#:\\/]?[a-zA-Zа-яА-Я!]{0,15})\s'  # noqa E501
-        }
-
-        checks = {}
-        variables = {}
-
-        for name, regex in regexes.items():
-            compiled = re.compile(regex)
-            try:
-                found_items = compiled.findall(self._command)
-                if name == 'dices':
-                    if len(found_items) != 0:
-                        variables['dices'] = found_items
-                        checks['dices'] = 'Y'
-                    else:
-                        checks['dices'] = 'N'
-                        return False
-                if name != 'description':
-                    variables[name] = int(found_items[0])
-                    checks[name] = 'Y'
-                else:
-                    variables[name] = found_items[0]
-                    checks[name] = 'Y'
-            except Exception:
-                checks[name] = 'N'
-
-        # extract dices, build Dice class entities and store them
-        dices_regexes = {
-            # number of rolls of a dice (2d100 ==> 2)
-            'number': r'(\d{1,2})[d, D, д, Д]\d{1,3}',
-            # dice type (2d100 ==> 100)
-            'dice': r'\s\d?\d?[d, D, д, Д](\d{1,3})'
-            }
-
-        self.dices = []
-        for dice in variables['dices']:
-            future_dice = {}
-            for name, regex in dices_regexes.items():
-                compiled = re.compile(regex)
-                try:
-                    future_dice[name] = int(compiled.findall(dice)[0])
-                except Exception:
-                    if name == 'number':
-                        future_dice[name] = 1
-                    else:
-                        checks['dices'] = 'N'
-                        return False
-
-            # then we append a Dice instance in the class var <self.dices>
-            self.dices.append(
-                self.Dice._make(
-                    [future_dice['dice'], future_dice['number']]
-                    )
-            )
-
-        # adding addtition (modifier) and description, if there is any
-        if checks['description'] == 'Y':
-            self.description = variables['description']
-        if checks['add_positive'] == 'Y':
-            self.addition = variables['add_positive']
-        if checks['add_negative'] == 'Y':
-            self.addition = variables['add_negative'] * -1
-
-        return True
-
-    def __repr__(self):
-        if not self.dices:
-            return 'No dices have been found'
-        string = ''
-        for dice in self.dices:
-            string += '%sd%s ' % (dice.number, dice.dice)
-        if self.addition:
-            if self.addition < 0:
-                string += ' - %s' % (abs(self.addition))
-            else:
-                string += ' + %s' % (self.addition)
-        return string
-
-    def roll(self):
-        """
-        Rolling dices, adding modifiers and description (if provided)
-        and constructing log
-        """
-        self.result = 0
-        if len(self.dices) == 1:
-            counter = False
+        if self.char:
+            self.name = self.char.name
         else:
-            counter = 0
+            self.name = telegram_user_object.username
 
-        for dice in self.dices:
-            if counter is not False:
-                counter += 1
+    @property
+    def hand(self):
+        if self._hand:
+            return self._hand
+        else:
+            self._hand = self._get_hand()
+        return self._hand
 
-            # dealing with d1 dice
-            if dice.dice == 1:
-                self.log.append((
-                    '<b>Wow.</b>You\'ve rolled d1. '
-                    'Result is <b>1</b>, what '
-                    'an <i>astonishing</i> surprise!'), ends='\n')
+    def _get_char(self) -> Char or None:
+        botuser = User.get_user_by_id(self.user_id)
+        char = botuser.active_char()
+        return char
 
-            # setup
-            try_list = []
-            badluck_marker_set = False
-            if self.dices.index(dice) == len(self.dices) - 1:  # if last dice
-                end_marker = True
-            else:
-                end_marker = False
+    def _get_hand(self) -> Hand:
+        hand = Hand()
+        sign = 1                             # sign in [1, -1]
+        sequence = self.formula.split()
 
-            # rolling dice, storing results in <try_list>
-            for roll_try in range(dice.number):
-                roll_try = random.randint(1, dice.dice)
-                try_list.append(roll_try)
+        for i, elem in enumerate(sequence):
+            # dices
+            dicegroup: re.Match = re.match(
+                r'(\d{0,3})[d, D, д, Д](\d{1,3})', elem)
+            if dicegroup:
+                number = dicegroup.group(1) or 1
+                hand.dices.append(
+                    DiceGroup(
+                        number=int(number),
+                        value=int(dicegroup.group(2))
+                    ))
+                continue
 
-                # whether to mark the ones (1) in rolls or not
-                if roll_try == 1 and dice.dice >= 6 and not badluck_marker_set:
-                    badluck_marker_set = True
-                else:
-                    badluck_marker_set = False
+            # modifiers
+            modifier: re.Match = re.match(r'\d{1,3}', elem)
+            if modifier:
+                hand.modifiers.append(int(modifier.group(0))*sign)
+                sign = 1
+                continue
 
-            # constructing log of current dice
-            self.log.append(
-                self.log_constructor(
-                  try_list,
-                  crit=dice.dice,
-                  badluck_marker=badluck_marker_set,
-                  count=counter,
-                  end_marker=end_marker
-                  )
-            )
+            # custom char attributes and attr aliases
+            alias: re.Match = re.match(r'\$([a-zA-ZА-Яа-я\-_]{2,7})', elem)
+            attr: re.Match = re.match(r'&([a-zA-ZА-Яа-я\-_]{2,25})', elem)
+            if any((alias, attr)) and self.char:
+                if alias:
+                    alias = alias.group(1)
+                    mod, name = self.char.get_attribute_by_alias(
+                        alias=alias
+                    )
+                    hand.attrs.append((mod, name) if name else (None, alias))
+                elif attr:
+                    name = attr.group(1)  # without leading "& sign
+                    mod = self.char.get_attribute_by_name(key=attr.group(1))
+                    hand.attrs.append((mod, name) if name else (None, name))
+                continue
 
-            # adding the sum of all the rolls to the current result
-            self.result += sum(try_list)
+            # description (last word in formula)
+            if i == len(sequence) - 1:                 # if the last element
+                descr: re.Match = re.match(r'[a-zA-ZА-Яа-я\-_]{3,25}', elem)
+                if descr:
+                    hand.description = descr.group(0)
+                    break
 
-            ##############
-            # end of cycle
+            # deal with +/-
+            if elem == '+': sign = 1         # noqa E701
+            elif elem == '-': sign = -1      # noqa E701
 
-        # adding modifier and description
-        if self.addition:
-            self.result += self.addition
+        return hand
 
-        # returning out with a result
-        return self.result
 
-    @staticmethod
-    def log_constructor(
-            list_of_rolls: list,
-            crit=False,
-            badluck_marker=False,
-            count=False,
-            end_marker=False):
-        """
-        Constructing log for a single dice roll
-        """
-        log_string = StringConstructor()
-        if count:
-            log_string.append('\U0001F3B2 <b>%s:</b> <i>rolling %sd%s:</i>' % (
-                count, len(list_of_rolls), crit
-                )
-            )
+if __name__ == '__main__':
 
-        # adding first roll result
-        if len(list_of_rolls) == 1 and count:
-            log_string.append(' ---> <b>{}</b>'.format(str(list_of_rolls[0])))
-        elif len(list_of_rolls) == 1:
-            log_string.append(
-                '\U0001F3B2 ---> <b>{}</b>'.format(str(list_of_rolls[0])))
-
-        # adding other results
-        elif len(list_of_rolls) > 1:
-            if not count:
-                log_string.append(
-                    '\n\U0001F3B2 --->   ' + str(list_of_rolls[0]))
-            else:
-                log_string.append('\n ' + str(list_of_rolls[0]))
-            for i in range(1, len(list_of_rolls)):
-                log_string.append(' + {}'.format(list_of_rolls[i]))
-
-            log_string.append(' = <b>{}</b>'.format(
-                sum(list_of_rolls))
-                )
-
-        log_string.append('', ends='\n\n')
-
-        # marking critical damage
-        if crit:
-            if str(crit) in log_string.log and (
-                    '<b>' + str(crit) not in log_string.log) and (
-                    'd1' not in log_string.log):
-                log_string.replace(
-                    str(crit) + ' ',  # space here is mandatory
-                    ''.join(('\U000026A1', '<b>', str(crit), '!', '</b>', ' '))
-                )
-
-        # if the dice type is d6 and higher, marking badluck rolls
-        if badluck_marker:
-            if ' 1 ' in log_string.log:
-                log_string.replace(
-                    ' 1 ',
-                    ''.join((' ', '<b>', '1', '...', '</b>', ' '))
-                )
-
-        return log_string.log
+    from collections import namedtuple
+    Tuser = namedtuple('Tuser', ['id', 'username'])
+    alex = Tuser(138946204, 'dexpiper')
+    roller = DiceRoller('2d20 + d6 + &Dexterity - 2 Dexterity_roll', alex)
+    print(roller.hand)
+    for dg in roller.hand.dices:
+        print(dg, dg.results)

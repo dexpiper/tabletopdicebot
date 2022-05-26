@@ -6,10 +6,14 @@
 
 {% endfor %}
 {% for attr in hand.attrs %}
+{% if attr[0] %}
 {{ emoji.gear }} <b>{{ attr[1] }}</b> <i>{{ attr[0] }}</i>
-
+{% else %}
+{{ emoji.exclamation }} <b>No such attribute/alias:</b> <i>{{ attr[1] }}</i>
+{% endif %}
 {% endfor %}
 {% for mod in hand.modifiers %}
-{{ emoji.horn }} <b>{{ mod }}</b>
+{% if mod > 0 %}{{ emoji.plus }} <b>{{ mod }}</b>{% else %}{{ emoji.minus }} <b>{{ mod*-1 }}</b>{% endif %}
+
 {% endfor %}
 {{ emoji.report }} <b>Result:</b> <b>{{ hand.result }}</b>     {% if hand.description %}<b>-----> {{ hand.description }}</b>{% endif %}

@@ -10,5 +10,7 @@ emoji = {
     'exclamation': '\U00002757',
     'report': '\U0001F4CB',
     'plus': '\U00002795',
-    'horn': '\U0001F4EF'
+    'minus': '\U00002796',
+    'horn': '\U0001F4EF',
+    'lightning': '\U000026A1'
 }
