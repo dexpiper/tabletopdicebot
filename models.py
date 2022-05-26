@@ -78,12 +78,16 @@ class Char(db.Entity):
             return requested_throw.formula
 
     @db_session
-    def get_attribute(self, key: str, alias: bool = False) -> int:
+    def get_attribute(self, key: str, alias: bool = False,
+                      return_name: bool = False) -> int:
         if alias:
             by_alias = self.attributes.filter(
                 lambda x: x.alias == key).get()
             if by_alias:
-                return by_alias.modifier
+                if not return_name:
+                    return by_alias.modifier
+                else:
+                    return by_alias.modifier, by_alias.name
 
         if not alias:
             by_name = self.attributes.filter(

@@ -42,4 +42,4 @@ def roll(roller: object, hand: object):
     Render roll template
     """
     template = env.get_template("roll.jinja2")
-    return template.render(roller=roller, emoji=emoji)
+    return template.render(roller=roller, hand=hand, emoji=emoji)

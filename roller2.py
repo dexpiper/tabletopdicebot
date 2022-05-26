@@ -24,7 +24,7 @@ class DiceGroup:
 
     @property
     def verbose(self):
-        return ' + '.join(self.results)
+        return ' + '.join([str(r) for r in self.results])
 
     @property
     def summary(self):
@@ -116,19 +116,16 @@ class DiceRoller:
             alias: re.Match = re.match(r'\$([a-zA-ZА-Яа-я\-_]{2,7})', elem)
             attr: re.Match = re.match(r'&([a-zA-ZА-Яа-я\-_]{2,25})', elem)
             if any((alias, attr)) and self.char:
+                # TODO:
                 if alias:
-                    hand.attrs.append(
-                        (
-                            self.char.get_attribute(
-                                key=alias.group(1), alias=True),
-                            alias.group(0)
-                        )
-                    )
+                    mod_and_name = self.char.get_attribute(
+                        key=alias.group(1), alias=True, return_name=True)
+                    hand.attrs.append((mod_and_name[0], mod_and_name[1]))
                 elif attr:
                     hand.attrs.append(
                         (
                             self.char.get_attribute(key=attr.group(1)),
-                            attr.group(0)
+                            attr.group(0)[1:]
                         )
                     )
                 continue

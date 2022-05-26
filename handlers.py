@@ -5,7 +5,7 @@ from flask import current_app
 from pony.orm import db_session
 
 import views
-from roller import DiceRoller, rolling
+from roller2 import DiceRoller
 from models import User, Char, Throw, Attribute  # noqa F401
 
 
@@ -100,12 +100,23 @@ class BotHandlers:
     # Rolls handlers
     #
     @handler(append_to=handlers, commands=['roll'])
+    @db_session
     def roll_anything(message):
         """
         Answering to the /roll command
         """
-        rolling(message, bot)
+        telegram_user = message.from_user
+        raw_formula = message.text[5:]
+        roller = DiceRoller(raw_formula, telegram_user)
+        hand = roller.hand
+        ready_text = views.roll(roller, hand)
+        bot.reply_to(
+            message,
+            ready_text,
+            parse_mode='HTML'
+        )
 
+'''
     @handler(append_to=handlers, commands=['rollme'])
     @db_session
     def roll_custom_throw(message):
@@ -172,3 +183,4 @@ class BotHandlers:
     def roll_4(message):
         roller = DiceRoller('/roll d4 ' + message.text[5:])
         rolling(message, bot, roller=roller)
+'''

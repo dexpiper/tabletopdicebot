@@ -1,18 +1,15 @@
-@{{ roller.name }} rolled <b><i>{{ roller.formula }}</i></b> {{ hand.description }}:
+{{ emoji.elf }}{{ roller.name }} rolled <b><i>{{ roller.formula }}</i></b>:
 
 {% for dice_group in hand.dices %}
-    {{ emoji.dice }} <i>rolling dice_group</i>:
+    {{ emoji.dice }} <i>rolling {{ dice_group }}</i>:
     {{ dice_group.verbose }} = {{ dice_group.summary }}
 
 {% endfor %}
-
 {% for attr in hand.attrs %}
-    {{ emoji.gear }} <b>{{ attr[1] }}</b> <i>{{ attr[0] }}</i>
+{{ emoji.gear }} <b>{{ attr[1] }}</b> <i>{{ attr[0] }}</i>
 
 {% endfor %}
-
-{% for mod in hands.modifiers %}
-    {{ emoji.horn }} <b>{{ mod }}</b>
-
+{% for mod in hand.modifiers %}
+{{ emoji.horn }} <b>{{ mod }}</b>
 {% endfor %}
-    {{ emoji.report }} <b>Result:</b> <b>{{ roller.result }}</b>
+{{ emoji.report }} <b>Result:</b> <b>{{ hand.result }}</b>     {% if hand.description %}<b>-----> {{ hand.description }}</b>{% endif %}
