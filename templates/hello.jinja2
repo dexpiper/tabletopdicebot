@@ -17,7 +17,33 @@ Bot helps rolling dices for classical RPG games. Could be added into a group.
 /roll20, /roll12, /roll10, /roll8, /roll6, /roll4
 
 {{ emoji.elf }} <b>Chars commands:</b>
-/chars --> <i>show the list of user's characters, saved throws and characteristics</i>
+/chars, /char --> <i>show the list of user's characters, saved throws and characteristics</i>
+/createchar MyCharName --> <i>create new char with given name</i>
+/deletechar MyCharName --> <i>delete char</i>
+/activechar MyCharName --> <i>set char as {{ emoji.chess }} active. You can /rollme custom rolls and throws and use characteristic aliases only for active char</i>
+
+{{ emoji.report }} <b>Your character attributes:</b>
+
+You can store characteristics (attributes) and modificators and use them in your rolls and custom throws.
+
+A character attribute has a <b>Value</b> and a <b>Modificator</b>:
+* <i>Value</i> would not be used in a roll directly. It is a basic value to compute your mod.
+* <i>Modificator</i> is in use in your rolls and throws. TelegramBot would compute it for you by DnD 5th rules if you not provide it. Else, you can specifiy it explicitly.
+
+Attributes also have a <b>name</b> and <b>alias</b>. You can refer to your modificators via aliases like that: /roll 2d20 1d4 + $STR and via name like that: /roll 2d20 1d4 + &Strength.
+You also excess attribute names when you manage your character attributes.
+
+<b>General command syntax:</b> /addmod <i>AttributeName</i> <i>Alias</i> <i>Value</i> <i>Modificator</i>
+
+/addmod Strength STR 20 --> <i>create an attribute with name Strength and value 20. Modificator +5 would be applied automaticly.</i>
+/addmod Dexterity DEX 12 -1 --> <i>create an attribute with name Dexterity and value 12 and custom modifier -1</i>
+/deletemod Dexterity --> <i>delete your attribute Dexterity (full name, aiases won't work)</i>
+
+
+{{ emoji.dice }} <b>Custom throws commands:</b>
+/rollme MyThrow --> <i>roll custom throw with name MyThrow</i>
+/createroll MyThrow 2d20 + 1d8 + $DEX -2 --> <i>create custom throw with name MyThrow and formula after that. Name must be a single word (you can use CamelCase and underscores). Note alias $DEX: attribute with this alias would be added to your custom throw. You also can use the full name of attribute like this: &Dexterity</i>
+/deleteroll MyThrow --> <i>delete your custom throw with name MyThrow</i>
 
 {{ emoji.clamp }} <b>Constraints:</b>
 - on dices: from d1 to d999
