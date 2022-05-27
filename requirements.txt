@@ -3,3 +3,4 @@ psycopg2-binary
 flask
 pyTelegramBotAPI
 Jinja2
+gunicorn
