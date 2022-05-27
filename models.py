@@ -5,7 +5,7 @@ from pony.orm import PrimaryKey, Required, Optional, Set
 from pony.orm import db_session
 from pony.orm.core import ObjectNotFound, TransactionIntegrityError
 
-from common.helpers import modifier_dictionary
+from common.helpers import modifier_dictionary, check_formula
 
 
 db = Database()
@@ -46,6 +46,41 @@ class User(db.Entity):
         return self.chars.filter(lambda x: x.active).get()
 
     @db_session
+    def create_char(self, name: str) -> object:
+        char_exists = self.chars.filter(lambda x: x.name == name).exists()
+        if char_exists:
+            raise NameError(
+                f'You have a char named {name} already'
+                'Check your charlist with /chars'
+            )
+        if name[0].isdigit():
+            raise ValueError(
+                'Your char name must not start with a digit.'
+            )
+        if len(name) > 20:
+            raise ValueError(
+                'Your char name is too long. Max length fro names - 20.'
+            )
+
+        newchar = Char(owner=self, name=name, active=False)
+        self.set_active_char(newchar.name)
+        return newchar
+
+    @db_session
+    def delete_char(self, name: str) -> bool:
+        char = self.chars.filter(lambda x: x.name == name).get()
+        if char:
+            char.delete()
+            if self.chars.count():
+                next_active_char = self.chars.filter().first()
+                self.set_active_char(next_active_char.name)
+        else:
+            raise NameError(
+                f'You have not a char named {name}. '
+                'Check your charlist with /chars'
+            )
+
+    @db_session
     def set_active_char(self, charname):
         """
         Should be used inside try/except. Check that in any case only
@@ -53,11 +88,11 @@ class User(db.Entity):
         character.
         """
         if not self.chars.count():
-            raise IndexError(f'User {self.user_id} has not any chars yet.')
+            raise IndexError('You have not any chars yet.')
         char = self.chars.filter(lambda x: x.name == charname).get()
         if not char:
             raise NameError(
-                f'User {self.user_id} has not char named {charname}')
+                f'You have not a char named {charname}')
         if not self.active_char:
             char.active = True
         else:
@@ -78,6 +113,100 @@ class Char(db.Entity):
         requested_throw = self.throws.filter(lambda x: x.name == name).get()
         if requested_throw:
             return requested_throw.formula
+
+    @db_session
+    def create_throw(self, throw_name: str, formula: str) -> str:
+        exists = self.throw(throw_name)
+        if exists:
+            raise NameError(
+                f'You have a roll named {throw_name} already')
+        formula_ok = check_formula(formula)
+        if formula_ok:
+            Throw(char=self, name=throw_name, formula=formula)
+            return True
+        else:
+            raise NameError(
+                f'Formula "{formula}" is invalid or empty. Please check it')
+
+    @db_session
+    def delete_throw(self, throw_name: str):
+        throw = self.throws.filter(lambda x: x.name == throw_name).get()
+        if not throw:
+            raise NameError(
+                f'Your active char {self.name} has not a roll '
+                f'named {throw_name}. Please check /chars or ask for /help'
+            )
+        throw.delete()
+        return True
+
+    @db_session
+    def create_attribute(self, name: str, alias: str, value: str,
+                         modifier: str or None = None):
+        """
+        Create an attribute. Note func takes only strings as arguments
+        """
+        common_error_message = (
+                'Incorrect command. Please check the examples: '
+                '/addmod Dexterity DEX 20\n'
+                '/addmod Dexterity DEX 20 5\n'
+            )
+        if not all((name, alias, value)):
+            raise ValueError(common_error_message)
+
+        if alias[0].isdigit():
+            raise ValueError('Alias must not start with a digit!')
+
+        if name[0].isdigit():
+            raise ValueError('Attribute name must not start with a digit!')
+
+        if any((len(name) > 25, len(alias) > 8)):
+            raise ValueError(
+                'Attribute name or alias are too long.\n'
+                'Max length for attribute name: 25, '
+                'Max length for alias: 8'
+            )
+
+        if any((len(name) < 4, len(alias) < 2)):
+            raise ValueError(
+                'Attribute name or alias are too short.\n'
+                'Min length for attribute name: 4, '
+                'Min length for alias: 2'
+            )
+
+        # existence check
+        _, name_exists1 = self.get_attribute_by_alias(alias)
+        name_exists2 = self.get_attribute_by_name(name)
+        if any([name_exists1, name_exists2]):
+            raise NameError(
+                f'Your active char {self.name} has already an attribute '
+                f'named {name} or attribute alias {alias}. '
+                'Please check /chars or ask for /help'
+            )
+
+        # values check
+        try:
+            value = int(value)
+            if modifier:
+                modifier = int(modifier)
+        except ValueError:
+            raise ValueError(common_error_message)
+        else:
+            Attribute(
+                char=self, name=name, alias=alias, value=value,
+                modifier=modifier or Attribute.get_modifier(15)
+            )
+
+    @db_session
+    def delete_attribute(self, name: str):
+        attr = self.attributes.filter(
+            lambda x: x.name == name).get()
+        if not attr:
+            raise IndexError(
+                f'Your active char {self.name} has not an '
+                f'attribute called {name}. '
+                'Please check /chars or ask for /help'
+            )
+        attr.delete()
 
     @db_session
     def get_attribute_by_alias(self, alias: str) -> Tuple[int, str]:

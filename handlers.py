@@ -7,6 +7,7 @@ from pony.orm import db_session
 import views
 from roller import DiceRoller
 from models import User, Char, Throw, Attribute  # noqa F401
+from common.unicode import emoji
 
 
 # getting data from flask.app_context
@@ -95,6 +96,289 @@ class BotHandlers:
                 ready_text,
                 parse_mode='HTML'
             )
+
+    @handler(append_to=handlers, commands=['createchar'])
+    @db_session
+    def create_char(message):
+        """
+        Creating a char
+        """
+        charname = message.text[12:].strip()
+        if not charname:
+            command_help = (
+                '/createchar Charname'
+            )
+            bot.send_message(
+                message.from_user.id,
+                views.command_help(command_help),
+                parse_mode='HTML'
+            )
+            return
+        user_id = message.from_user.id
+        user = User.get_user_by_id(user_id)
+        try:
+            newchar = user.create_char(charname)
+        except Exception as exc:
+            bot.reply_to(
+                message,
+                views.error(exc),
+                parse_mode='HTML'
+            )
+        else:
+            bot.reply_to(
+                message,
+                f'{emoji["horn"]} '
+                f'New char {emoji["elf"]} {newchar.name} created!\n'
+                'Your /chars have been updated.',
+                parse_mode='HTML'
+            )
+
+    @handler(append_to=handlers, commands=['deletechar'])
+    @db_session
+    def delete_char(message):
+        """
+        Delete char
+        """
+        charname = message.text[12:].strip()
+        if not charname:
+            command_help = (
+                '/deletechar Charname'
+            )
+            bot.send_message(
+                message.from_user.id,
+                views.command_help(command_help),
+                parse_mode='HTML'
+            )
+            return
+        user_id = message.from_user.id
+        user = User.get_user_by_id(user_id)
+        try:
+            user.delete_char(name=charname)
+        except Exception as exc:
+            bot.reply_to(
+                message,
+                views.error(exc),
+                parse_mode='HTML'
+            )
+        else:
+            bot.reply_to(
+                message,
+                f'{emoji["trashbin"]} '
+                f'Char {emoji["elf"]} {charname} deleted.',
+                parse_mode='HTML'
+            )
+
+    @handler(append_to=handlers, commands=['activechar'])
+    @db_session
+    def set_active(message):
+        """
+        Change active char
+        """
+        charname = message.text[12:].strip()
+        if not charname:
+            command_help = (
+                '/activechar Charname'
+            )
+            bot.send_message(
+                message.from_user.id,
+                views.command_help(command_help),
+                parse_mode='HTML'
+            )
+            return
+        user_id = message.from_user.id
+        user = User.get_user_by_id(user_id)
+        try:
+            user.set_active_char(charname)
+        except Exception as exc:
+            bot.reply_to(
+                message,
+                views.error(exc),
+                parse_mode='HTML'
+            )
+        else:
+            ready_text = views.charlist(user)
+            bot.reply_to(
+                    message,
+                    ready_text,
+                    parse_mode='HTML'
+                )
+
+    @handler(append_to=handlers, commands=['createroll'])
+    @db_session
+    def create_throw(message):
+        """
+        Create custom throw
+        """
+        query = message.text[12:].split()
+        try:
+            throw_name, formula = query[0], ' '.join((query[1:]))
+        except IndexError:
+            error_text = (
+                'Check if you entered the command correctly:\n\n'
+                'Example: \n'
+                '/createroll MyThrow 2d20 + 1d8 + $DEX'
+            )
+            bot.reply_to(
+                message,
+                views.error(error_text),
+                parse_mode='HTML'
+            )
+            return
+        user_id = message.from_user.id
+        user = User.get_user_by_id(user_id)
+        char = user.active_char()
+        if not char:
+            bot.reply_to(
+                message,
+                views.error('You have not a char yet.'),
+                parse_mode='HTML'
+            )
+            return
+        try:
+            char.create_throw(throw_name, formula)
+        except Exception as exc:
+            bot.reply_to(
+                message,
+                views.error(exc),
+                parse_mode='HTML'
+            )
+        else:
+            ready_text = views.charlist(user)
+            bot.reply_to(
+                    message,
+                    ready_text,
+                    parse_mode='HTML'
+                )
+
+    @handler(append_to=handlers, commands=['deleteroll'])
+    @db_session
+    def delete_throw(message):
+        """
+        Delete custom throw
+        """
+        throw_name = message.text[12:]
+        if not throw_name:
+            error_text = (
+                'Check if you entered the command correctly:\n\n'
+                'Example: \n'
+                '/deleteroll MyThrow'
+            )
+            bot.reply_to(
+                message,
+                views.error(error_text),
+                parse_mode='HTML'
+            )
+            return
+        user_id = message.from_user.id
+        user = User.get_user_by_id(user_id)
+        char = user.active_char()
+        if not char:
+            bot.reply_to(
+                message,
+                views.error('You have not a char yet.'),
+                parse_mode='HTML'
+            )
+            return
+        try:
+            char.delete_throw(throw_name)
+        except Exception as exc:
+            bot.reply_to(
+                message,
+                views.error(exc),
+                parse_mode='HTML'
+            )
+        else:
+            ready_text = views.charlist(user)
+            bot.reply_to(
+                    message,
+                    ready_text,
+                    parse_mode='HTML'
+                )
+
+    @handler(append_to=handlers, commands=['addmod'])
+    @db_session
+    def create_attribute(message):
+        query: list = message.text[8:].split()
+        if len(query) < 3 or len(query) > 4:
+            error_message = (
+                'Incorrect command. Please check the examples: '
+                '/addmod Dexterity DEX 20\n'
+                '/addmod Dexterity DEX 20 5\n\n'
+                'The command takes 3 or 4 arguments:\n'
+                '1) NameOfAttribute (single_world!), 2) Alias, 3) Value and '
+                '4) Modifier (optional)\n'
+                'Arguments must be separated with spaces'
+            )
+            bot.reply_to(
+                message,
+                views.error(error_message),
+                parse_mode='HTML'
+            )
+            return
+
+        # getting user vars
+        if len(query) == 3:
+            name, alias, value = query
+            mod = None
+        elif len(query) == 4:
+            name, alias, value, mod = query
+
+        user_id = message.from_user.id
+        user = User.get_user_by_id(user_id)
+        char = user.active_char()
+        if not char:
+            bot.reply_to(
+                message,
+                views.error('You have not a char yet.'),
+                parse_mode='HTML'
+            )
+            return
+
+        try:
+            char.create_attribute(name, alias, value, mod)
+        except Exception as exc:
+            bot.reply_to(
+                message,
+                views.error(exc),
+                parse_mode='HTML'
+            )
+        else:
+            ready_text = views.charlist(user)
+            bot.reply_to(
+                    message,
+                    ready_text,
+                    parse_mode='HTML'
+                )
+
+    @handler(append_to=handlers, commands=['deletemod'])
+    @db_session
+    def delete_attribute(message):
+        name: list = message.text[11:]
+        user_id = message.from_user.id
+        user = User.get_user_by_id(user_id)
+        char = user.active_char()
+        if not char:
+            bot.reply_to(
+                message,
+                views.error('You have not a char yet.'),
+                parse_mode='HTML'
+            )
+            return
+        try:
+            char.delete_attribute(name)
+        except Exception as exc:
+            bot.reply_to(
+                message,
+                views.error(exc),
+                parse_mode='HTML'
+            )
+        else:
+            ready_text = views.charlist(user)
+            bot.reply_to(
+                    message,
+                    ready_text,
+                    parse_mode='HTML'
+                )
 
     #
     # Rolls handlers

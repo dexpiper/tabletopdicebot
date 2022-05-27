@@ -29,6 +29,14 @@ def charlist(user: User):
     return template.render(user=user, emoji=emoji)
 
 
+def command_help(help_message: str):
+    """
+    Send help message about certain command
+    """
+    template = env.get_template("commandhelp.jinja2")
+    return template.render(usage=help_message, emoji=emoji)
+
+
 def error(error_text: str):
     """
     Render error_text into a standard error template

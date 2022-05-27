@@ -12,5 +12,6 @@ emoji = {
     'plus': '\U00002795',
     'minus': '\U00002796',
     'horn': '\U0001F4EF',
-    'lightning': '\U000026A1'
+    'lightning': '\U000026A1',
+    'trashbin': '\U0001F5D1',
 }

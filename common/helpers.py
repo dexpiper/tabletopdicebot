@@ -1,3 +1,12 @@
+def check_formula(formula):
+    """
+    TODO: Write function to check if formula is valid
+    """
+    if not formula.strip():
+        return False
+    return True
+
+
 modifier_dictionary = {
     # is used to convert basic characteristic value
     # into proper modifier.
