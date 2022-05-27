@@ -4,6 +4,17 @@ import logging
 import telebot
 from flask import Flask, request
 
+import models
+
+
+models.db.bind(provider='sqlite', filename='dice.sqlite', create_db=True)
+# db.bind(
+#    provider='postgres', user='dicebot', password='12345678',
+#    host='', database='postgres'
+# )
+models.db.generate_mapping(create_tables=True)
+# set_sql_debug(True)
+
 
 botlogger = logging.getLogger('botlogger')
 

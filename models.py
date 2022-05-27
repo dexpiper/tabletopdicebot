@@ -246,15 +246,6 @@ class Attribute(db.Entity):
         return modifier_dictionary.get(value, 0)
 
 
-db.bind(provider='sqlite', filename='dice.sqlite', create_db=True)
-# db.bind(
-#    provider='postgres', user='dicebot', password='12345678',
-#    host='', database='postgres'
-# )
-db.generate_mapping(create_tables=True)
-# set_sql_debug(True)
-
-
 if __name__ == '__main__':
     with db_session:
         alex = User(user_id=138946204)
