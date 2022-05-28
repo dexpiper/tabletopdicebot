@@ -188,12 +188,14 @@ class Char(db.Entity):
             value = int(value)
             if modifier:
                 modifier = int(modifier)
+            else:
+                modifier = Attribute.get_modifier(value)
         except ValueError:
             raise ValueError(common_error_message)
         else:
             Attribute(
-                char=self, name=name, alias=alias, value=value,
-                modifier=modifier or Attribute.get_modifier(15)
+                char=self, name=name, alias=alias.upper(), value=value,
+                modifier=modifier
             )
 
     @db_session

@@ -1,0 +1,13 @@
+{% extends "commandhelp.jinja2" %}
+{% block usage %}
+    /createchar Legolas
+
+Use to create new {{emoji.elf }} character. Enter charname after command.
+
+    {{emoji.point}} should start with an uppercase letter (not a digit!)
+    {{emoji.point}} should be one word long. If your char has a long name like <i>Emiel Regis Rohellec Terzieff-Godefroy</i>, please consider naming him just <i>Regis</i>, or use "_" and "-".
+    {{emoji.point}} should be unique for your Telegram profile. Other players can also have Regises and Legolases, it doesn't affect your choice.
+
+Your new {{emoji.elf }} character would become {{ emoji.chess }} active automaticly. If you have been playing other active char, he/she would no longer be active. To change your active char, use /activechar command. To check the list of your chars, fire /chars.
+
+{% endblock %}

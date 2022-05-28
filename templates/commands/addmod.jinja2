@@ -1,0 +1,27 @@
+{% extends "commandhelp.jinja2" %}
+{% block usage %}
+/addmod Dexterity DEX 20
+/addmod Dexterity DEX 20 8
+
+Use to create custom character's {{ emoji.gear }} attributes and modifiers.
+The command takes 3 or 4 arguments:
+
+    {{emoji.point}} <b>NameOfAttribute</b> -- single world, "-" and "_" allowed. Max 25 characters long, should not start with a digit.
+    {{emoji.point}} <b>Alias</b> -- single word, uppercase, "-" and "_" allowed. Max 8 characters long, should not start with a digit.
+    {{emoji.point}} <b>Value</b> -- integer. Would not be used in your throws directly.
+    {{emoji.point}} <b>Modifier</b>, <i>optional</i> -- integer. By default, it is computed from value with the DnD5 rule set (<i>6 -> -2; 12 -> 1;, 25 -> 7, 30 -> 10 etc.</i>). If you would like to apply other rules, you may specify your modifier directly from the command.
+
+Arguments must be separated with spaces.
+
+{{emoji.report}} You may excess the modifiers:
+
+{{ emoji.dollar }} by alias (like $STR)
+{{ emoji.paperclip }} by attribute name (like &NameOfAttribute).
+
+Some examples:
+    /roll 2d20 + 1d6 + $STR - 2
+    /roll 1d12 + 1d4 + &Dexterity + 1
+
+You also may get use of predefined attributes (modifiers) in custom {{ emoji.dice }} throws (/createroll)
+
+{% endblock %}

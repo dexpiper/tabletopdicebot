@@ -24,18 +24,18 @@ Bot helps rolling dices for classical RPG games. Could be added into a group.
 
 {{ emoji.report }} <b>Your character attributes:</b>
 
-You can store characteristics (attributes) and modificators and use them in your rolls and custom throws.
+You can store characteristics (attributes) and modifiers and use them in your rolls and custom throws.
 
-A character attribute has a <b>Value</b> and a <b>Modificator</b>:
+A character attribute has a <b>Value</b> and a <b>modifier</b>:
 * <i>Value</i> would not be used in a roll directly. It is a basic value to compute your mod.
-* <i>Modificator</i> is in use in your rolls and throws. TelegramBot would compute it for you by DnD 5th rules if you not provide it. Else, you can specifiy it explicitly.
+* <i>modifier</i> is in use in your rolls and throws. TelegramBot would compute it for you by DnD 5th rules if you not provide it. Else, you can specifiy it explicitly.
 
-Attributes also have a <b>name</b> and <b>alias</b>. You can refer to your modificators via aliases like that: /roll 2d20 1d4 + $STR and via name like that: /roll 2d20 1d4 + &Strength.
+Attributes also have a <b>name</b> and <b>alias</b>. You can refer to your modifiers via aliases like that: /roll 2d20 1d4 + $STR and via name like that: /roll 2d20 1d4 + &Strength.
 You also excess attribute names when you manage your character attributes.
 
-<b>General command syntax:</b> /addmod <i>AttributeName</i> <i>Alias</i> <i>Value</i> <i>Modificator</i>
+<b>General command syntax:</b> /addmod <i>AttributeName</i> <i>Alias</i> <i>Value</i> <i>modifier</i>
 
-/addmod Strength STR 20 --> <i>create an attribute with name Strength and value 20. Modificator +5 would be applied automaticly.</i>
+/addmod Strength STR 20 --> <i>create an attribute with name Strength and value 20. modifier +5 would be applied automaticly.</i>
 /addmod Dexterity DEX 12 -1 --> <i>create an attribute with name Dexterity and value 12 and custom modifier -1</i>
 /deletemod Dexterity --> <i>delete your attribute Dexterity (full name, aiases won't work)</i>
 

@@ -14,4 +14,7 @@ emoji = {
     'horn': '\U0001F4EF',
     'lightning': '\U000026A1',
     'trashbin': '\U0001F5D1',
+    'point': '\U0001F538',
+    'dollar': '\U0001F4B2',
+    'paperclip': '\U0001F4CE',
 }

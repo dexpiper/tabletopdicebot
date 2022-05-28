@@ -131,7 +131,7 @@ class DiceRoller:
                     hand.attrs.append((mod, name) if name else (None, alias))
                 elif attr:
                     name = attr.group(1)  # without leading "& sign
-                    mod = self.char.get_attribute_by_name(key=attr.group(1))
+                    mod = self.char.get_attribute_by_name(attr.group(1))
                     hand.attrs.append((mod, name) if name else (None, name))
                 continue
 

@@ -1,0 +1,13 @@
+{% extends "commandhelp.jinja2" %}
+{% block usage %}
+/createroll MyThrow 2d20 + 1d8 + $DEX
+
+Use to create new  {{ emoji.dice }} throws (custom rolls) for your {{emoji.elf }} character.
+
+{{emoji.point}} First argument should be the name of your throw. Single word, "-" and "_" are allowed. You would type your throw name after /rollme command, so please be advised to make it short and distinguishable, so you can easily use it in your game session.
+{{emoji.point}} After your argument goes your roll formula. You may use the common syntax as for the /roll command, inculding your modifiers' aliases (like $DEX).
+
+{{ emoji.paperclip }} Note that you would have access only for custom rolls defined for your {{ emoji.chess }}active character:
+  -- for example, {{ emoji.elf }}<i>Legolas</i> cannot roll {{ emoji.dice }} <i>Dexterity</i> throw for {{ emoji.elf }}<i>Aragorn</i>. And this is also true for your character's modifiers. So please check your active char with /char command before your build.
+
+{% endblock %}

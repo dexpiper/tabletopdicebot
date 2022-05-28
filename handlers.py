@@ -105,12 +105,9 @@ class BotHandlers:
         """
         charname = message.text[12:].strip()
         if not charname:
-            command_help = (
-                '/createchar Charname'
-            )
             bot.send_message(
                 message.from_user.id,
-                views.command_help(command_help),
+                views.command_help('/createchar'),
                 parse_mode='HTML'
             )
             return
@@ -141,12 +138,9 @@ class BotHandlers:
         """
         charname = message.text[12:].strip()
         if not charname:
-            command_help = (
-                '/deletechar Charname'
-            )
             bot.send_message(
                 message.from_user.id,
-                views.command_help(command_help),
+                views.command_help('deletechar'),
                 parse_mode='HTML'
             )
             return
@@ -176,12 +170,9 @@ class BotHandlers:
         """
         charname = message.text[12:].strip()
         if not charname:
-            command_help = (
-                '/activechar Charname'
-            )
             bot.send_message(
                 message.from_user.id,
-                views.command_help(command_help),
+                views.command_help('activechar'),
                 parse_mode='HTML'
             )
             return
@@ -209,18 +200,21 @@ class BotHandlers:
         """
         Create custom throw
         """
+        if not message.text[12:].strip():
+            bot.reply_to(
+                message,
+                views.command_help('createroll'),
+                parse_mode='HTML'
+            )
+            return
         query = message.text[12:].split()
         try:
             throw_name, formula = query[0], ' '.join((query[1:]))
         except IndexError:
-            error_text = (
-                'Check if you entered the command correctly:\n\n'
-                'Example: \n'
-                '/createroll MyThrow 2d20 + 1d8 + $DEX'
-            )
+            error_text = ('Incorrect command syntax')
             bot.reply_to(
                 message,
-                views.error(error_text),
+                views.command_help('createroll', error_text),
                 parse_mode='HTML'
             )
             return
@@ -298,20 +292,15 @@ class BotHandlers:
     @handler(append_to=handlers, commands=['addmod'])
     @db_session
     def create_attribute(message):
-        query: list = message.text[8:].split()
+        query: list = message.text[8:].strip().split()
         if len(query) < 3 or len(query) > 4:
-            error_message = (
-                'Incorrect command. Please check the examples: '
-                '/addmod Dexterity DEX 20\n'
-                '/addmod Dexterity DEX 20 5\n\n'
-                'The command takes 3 or 4 arguments:\n'
-                '1) NameOfAttribute (single_world!), 2) Alias, 3) Value and '
-                '4) Modifier (optional)\n'
-                'Arguments must be separated with spaces'
-            )
+            if len(query):  # empty query
+                error_text = 'Incorrect command syntax.'
+            else:
+                error_text = ''
             bot.reply_to(
                 message,
-                views.error(error_message),
+                views.command_help('addmod', error_text=error_text),
                 parse_mode='HTML'
             )
             return
@@ -329,7 +318,8 @@ class BotHandlers:
         if not char:
             bot.reply_to(
                 message,
-                views.error('You have not a char yet.'),
+                views.error('You have not a char yet. '
+                            'Create one with /createchar'),
                 parse_mode='HTML'
             )
             return
