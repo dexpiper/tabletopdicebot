@@ -53,13 +53,17 @@ class User(db.Entity):
                 f'You have a char named {name} already'
                 'Check your charlist with /chars'
             )
+        if len(self.chars) > 5:
+            raise AssertionError(
+                'You cannot have more than 5 characters per account. '
+            )
         if name[0].isdigit():
             raise ValueError(
                 'Your char name must not start with a digit.'
             )
         if len(name) > 20:
             raise ValueError(
-                'Your char name is too long. Max length fro names - 20.'
+                'Your char name is too long. Max length for names: 20.'
             )
 
         newchar = Char(owner=self, name=name, active=False)

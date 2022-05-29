@@ -6,7 +6,7 @@ from pony.orm import db_session
 
 import views
 from roller import DiceRoller
-from models import User, Char, Throw, Attribute  # noqa F401
+from models import User
 from common.unicode import emoji
 
 
@@ -59,6 +59,27 @@ class BotHandlers:
             return wrapper_register
         return decorator_register
 
+    def with_info(f):
+        """
+        Decorator to get user and char database objects as
+        child function attributes:
+
+        @handler(...)
+        @with_info
+        def some_function(message, user, char):
+            ...
+
+        """
+        @functools.wraps(f)
+        def wrapper_with_info(*args, **kwargs):
+            message = args[0]
+            user_id = message.from_user.id
+            user = User.get_user_by_id(user_id)
+            char = user.active_char()
+            new_args = args + (user, char,)
+            f(*new_args, **kwargs)
+        return wrapper_with_info
+
 ############################################################
 #                                                          #
 #                  BOT MESSAGE HANDLERS                    #
@@ -73,236 +94,143 @@ class BotHandlers:
         """
         Bot sends general help page and basic bot info
         """
-        bot.send_message(
-            message.chat.id,
-            views.hello(message.from_user.username),
-            parse_mode='HTML'
-        )
+        send(message, views.hello(message.from_user.username))
 
     #
     # Managing user settings handlers
     #
     @handler(append_to=handlers, commands=['char', 'chars'])
     @db_session
-    def show_user_chars_list(message):
+    @with_info
+    def show_user_chars_list(message, user, char):
         """
         Show charlist for user
         """
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
-        ready_text = views.charlist(user)
-        bot.reply_to(
-                message,
-                ready_text,
-                parse_mode='HTML'
-            )
+        reply(message, views.charlist(user))
 
     @handler(append_to=handlers, commands=['createchar'])
     @db_session
-    def create_char(message):
+    @with_info
+    def create_char(message, user, char):
         """
         Creating a char
         """
         charname = message.text[12:].strip()
         if not charname:
-            bot.send_message(
-                message.from_user.id,
-                views.command_help('/createchar'),
-                parse_mode='HTML'
-            )
+            send(message, views.command_help('/createchar'))
             return
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
         try:
             newchar = user.create_char(charname)
         except Exception as exc:
-            bot.reply_to(
-                message,
-                views.error(exc),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(exc))
         else:
-            bot.reply_to(
-                message,
+            answer = (
                 f'{emoji["horn"]} '
                 f'New char {emoji["elf"]} {newchar.name} created!\n'
-                'Your /chars have been updated.',
-                parse_mode='HTML'
+                'Your /chars have been updated.'
             )
+            reply(message, answer)
 
     @handler(append_to=handlers, commands=['deletechar'])
     @db_session
-    def delete_char(message):
+    @with_info
+    def delete_char(message, user, char):
         """
         Delete char
         """
         charname = message.text[12:].strip()
-        if not charname:
-            bot.send_message(
-                message.from_user.id,
-                views.command_help('deletechar'),
-                parse_mode='HTML'
-            )
+        if not charname or len(charname.split()) > 1:
+            # charname should be a single word
+            reply(message, views.command_help('deletechar'))
             return
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
         try:
             user.delete_char(name=charname)
         except Exception as exc:
-            bot.reply_to(
-                message,
-                views.error(exc),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(exc))
         else:
-            bot.reply_to(
-                message,
+            answer = (
                 f'{emoji["trashbin"]} '
-                f'Char {emoji["elf"]} {charname} deleted.',
-                parse_mode='HTML'
+                f'Char {emoji["elf"]} {charname} deleted.'
             )
+            reply(message, answer)
 
     @handler(append_to=handlers, commands=['activechar'])
     @db_session
-    def set_active(message):
+    @with_info
+    def set_active(message, user, char):
         """
         Change active char
         """
         charname = message.text[12:].strip()
         if not charname:
-            bot.send_message(
-                message.from_user.id,
-                views.command_help('activechar'),
-                parse_mode='HTML'
-            )
+            reply(message, views.command_help('activechar'))
             return
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
         try:
             user.set_active_char(charname)
         except Exception as exc:
-            bot.reply_to(
-                message,
-                views.error(exc),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(exc))
         else:
-            ready_text = views.charlist(user)
-            bot.reply_to(
-                    message,
-                    ready_text,
-                    parse_mode='HTML'
-                )
+            reply(message, views.charlist(user))
 
     @handler(append_to=handlers, commands=['createroll'])
     @db_session
-    def create_throw(message):
+    @with_info
+    def create_throw(message, user, char):
         """
         Create custom throw
         """
         if not message.text[12:].strip():
-            bot.reply_to(
-                message,
-                views.command_help('createroll'),
-                parse_mode='HTML'
-            )
+            reply(message, views.command_help('createroll'))
             return
         query = message.text[12:].split()
         try:
             throw_name, formula = query[0], ' '.join((query[1:]))
         except IndexError:
-            error_text = ('Incorrect command syntax')
-            bot.reply_to(
-                message,
-                views.command_help('createroll', error_text),
-                parse_mode='HTML'
-            )
+            error_text = 'Incorrect command syntax'
+            reply(message, views.command_help('createroll', error_text))
             return
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
-        char = user.active_char()
         if not char:
-            bot.reply_to(
-                message,
-                views.error('You have not a char yet.'),
-                parse_mode='HTML'
-            )
+            reply(message, views.error('You have not a char yet.'))
             return
         try:
             char.create_throw(throw_name, formula)
         except Exception as exc:
-            bot.reply_to(
-                message,
-                views.error(exc),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(exc))
         else:
-            ready_text = views.charlist(user)
-            bot.reply_to(
-                    message,
-                    ready_text,
-                    parse_mode='HTML'
-                )
+            reply(message, views.charlist(user))
 
-    @handler(append_to=handlers, commands=['deleteroll'])
+    @handler(append_to=handlers, commands=['deleteroll', 'deletethrow'])
     @db_session
-    def delete_throw(message):
+    @with_info
+    def delete_throw(message, user, char):
         """
         Delete custom throw
         """
         throw_name = message.text[12:]
         if not throw_name:
-            error_text = (
-                'Check if you entered the command correctly:\n\n'
-                'Example: \n'
-                '/deleteroll MyThrow'
-            )
-            bot.reply_to(
-                message,
-                views.error(error_text),
-                parse_mode='HTML'
-            )
+            reply(message, views.command_help('deleteroll'))
             return
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
-        char = user.active_char()
         if not char:
-            bot.reply_to(
-                message,
-                views.error('You have not a char yet.'),
-                parse_mode='HTML'
-            )
+            reply(message, views.error('You have no chars. Use /createchar'))
             return
         try:
             char.delete_throw(throw_name)
         except Exception as exc:
-            bot.reply_to(
-                message,
-                views.error(exc),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(exc))
         else:
-            ready_text = views.charlist(user)
-            bot.reply_to(
-                    message,
-                    ready_text,
-                    parse_mode='HTML'
-                )
+            reply(message, views.charlist(user))
 
     @handler(append_to=handlers, commands=['addmod'])
     @db_session
-    def create_attribute(message):
+    @with_info
+    def create_attribute(message, user, char):
         query: list = message.text[8:].strip().split()
         if len(query) < 3 or len(query) > 4:
             if len(query):  # empty query
                 error_text = 'Incorrect command syntax.'
             else:
                 error_text = ''
-            bot.reply_to(
-                message,
-                views.command_help('addmod', error_text=error_text),
-                parse_mode='HTML'
-            )
+            reply(message, views.command_help('addmod', error_text=error_text))
             return
 
         # getting user vars
@@ -312,63 +240,34 @@ class BotHandlers:
         elif len(query) == 4:
             name, alias, value, mod = query
 
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
-        char = user.active_char()
         if not char:
-            bot.reply_to(
-                message,
-                views.error('You have not a char yet. '
-                            'Create one with /createchar'),
-                parse_mode='HTML'
-            )
+            reply(message, views.error('You have no chars. Use /createchar'))
             return
 
         try:
             char.create_attribute(name, alias, value, mod)
         except Exception as exc:
-            bot.reply_to(
-                message,
-                views.error(exc),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(exc))
         else:
-            ready_text = views.charlist(user)
-            bot.reply_to(
-                    message,
-                    ready_text,
-                    parse_mode='HTML'
-                )
+            reply(message, views.charlist(user))
 
     @handler(append_to=handlers, commands=['deletemod'])
     @db_session
-    def delete_attribute(message):
-        name: list = message.text[11:]
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
-        char = user.active_char()
+    @with_info
+    def delete_attribute(message, user, char):
+        name = message.text[11:].strip()
+        if not name:
+            reply(message, views.command_help('deletemod'))
+            return
         if not char:
-            bot.reply_to(
-                message,
-                views.error('You have not a char yet.'),
-                parse_mode='HTML'
-            )
+            reply(message, views.error('You have not a char yet. /createchar'))
             return
         try:
             char.delete_attribute(name)
         except Exception as exc:
-            bot.reply_to(
-                message,
-                views.error(exc),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(exc))
         else:
-            ready_text = views.charlist(user)
-            bot.reply_to(
-                    message,
-                    ready_text,
-                    parse_mode='HTML'
-                )
+            reply(message, views.charlist(user))
 
     #
     # Rolls handlers
@@ -383,57 +282,33 @@ class BotHandlers:
         raw_formula = message.text[6:]  # removeprefix /roll
         roller = DiceRoller(raw_formula, telegram_user)
         hand = roller.hand
-        ready_text = views.roll(roller, hand)
-        bot.reply_to(
-            message,
-            ready_text,
-            parse_mode='HTML'
-        )
+        reply(message, views.roll(roller, hand))
 
     @handler(append_to=handlers, commands=['rollme'])
     @db_session
-    def roll_custom_throw(message):
+    @with_info
+    def roll_custom_throw(message, user, char):
         """
         Rolling pre-defined throws by name
         """
-        user_id = message.from_user.id
-        user = User.get_user_by_id(user_id)
-        userchar = user.active_char()
-        if not userchar:
-            error_text = (
-                'Sorry, you have no active character. '
-                'Call /createchar to create one!'
-            )
-            bot.reply_to(
-                message,
-                views.error(error_text),
-                parse_mode='HTML'
-            )
+        if not char:
+            reply(message, views.error('You have not a char yet. /createchar'))
             return
         throwname = message.text[7:].strip()
-        formula = userchar.throw(throwname)
+        formula = char.throw(throwname)
         if formula:
             roller = DiceRoller(formula, message.from_user)
             hand = roller.hand
-            ready_text = views.roll(roller, hand)
-            bot.reply_to(
-                message,
-                ready_text,
-                parse_mode='HTML'
-            )
+            reply(message, views.roll(roller, hand))
         else:
             error_text = (
                 f'Sorry, such Throw ({throwname}) is not '
-                f'registered for your active char {userchar.name}'
+                f'registered for your active char {char.name}'
             )
-            bot.reply_to(
-                message,
-                views.error(error_text),
-                parse_mode='HTML'
-            )
+            reply(message, views.error(error_text))
 
     #
-    # Roll shorthands
+    # Roll shorthands commands
     #
     @handler(commands=['roll20'])
     def roll_20(message):
@@ -460,13 +335,55 @@ class BotHandlers:
         shorthand(message, 4)
 
 
-def shorthand(message, dice: int):
+#
+#
+# HELPER FUNCTIONS
+#
+#
+def reply(to_message: object, with_message: str):
+    """
+    Reply to given incoming message with outcoming message
+    (with Telegram reply wrapper).
+
+    * to_message: the original message object
+          came to bot from user
+    * with_message: answer the bot should send to
+          the author of incoming_message
+    """
+    bot.reply_to(
+            to_message,
+            with_message,
+            parse_mode='HTML'
+        )
+
+
+def send(incoming_message: object, outcoming_message: str):
+    """
+    Send message (without Telegram reply wrapper).
+
+    * incoming_message: the original message object
+          came to bot from user
+    * outcoming_message: answer the bot should send to
+          the author of incoming_message
+    """
+    bot.send_message(
+        incoming_message.from_user.id,
+        outcoming_message,
+        parse_mode='HTML'
+    )
+
+
+def shorthand(message: object, dice: int):
+    """
+    Make a throw with one dice of cpecified type and
+    send the roll result to the user.
+
+    * message: the original message object
+          came to bot from user
+    * dice: dice type (for exaple, 1d20 dice should be described
+          as 20, 1d100 as 100, etc.)
+    """
     descr = message.text[8:] if dice > 9 else message.text[7:]
     roller = DiceRoller(f'/roll d{dice} ' + descr, message.from_user)
     hand = roller.hand
-    ready_text = views.roll(roller, hand)
-    bot.reply_to(
-            message,
-            ready_text,
-            parse_mode='HTML'
-        )
+    reply(message, views.roll(roller, hand))
