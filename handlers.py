@@ -294,10 +294,23 @@ class BotHandlers:
         if not char:
             reply(message, views.error('You have not a char yet. /createchar'))
             return
-        throwname = message.text[7:].strip()
-        formula = char.throw(throwname)
+        query = message.text[7:].strip().split()
+        if not len(query):
+            reply(message, views.command_help('rollme'))
+
+        throwname = query[0]              # first arg would be the throwname
+        formula = char.throw(throwname)   # naked formula
+
+        if len(query) > 1:
+            # got some addition to the Throw, like "/rollme throwname + 2"
+            addition = ' '.join(query[1:])
+            addition = ' ' + addition  # adding space before
+        else:
+            # no addition provided
+            addition = ''
+
         if formula:
-            roller = DiceRoller(formula, message.from_user)
+            roller = DiceRoller(formula + addition, message.from_user)
             hand = roller.hand
             reply(message, views.roll(roller, hand))
         else:

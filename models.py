@@ -117,6 +117,8 @@ class Char(db.Entity):
         requested_throw = self.throws.filter(lambda x: x.name == name).get()
         if requested_throw:
             return requested_throw.formula
+        else:
+            return ''
 
     @db_session
     def create_throw(self, throw_name: str, formula: str) -> str:

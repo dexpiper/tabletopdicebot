@@ -1,0 +1,8 @@
+{% extends "commandhelp.jinja2" %}
+{% block usage %}
+/rollme Insight
+/rollme Sword + 2
+/rollme MyCustomThrow + 1d4 + d8 - 4
+
+Use to roll your custom {{ emoji.dice }} Throws (custom rolls). You can define them with /createroll. Note that you can /rollme custom throws only for your {{ emoji.chess }} active character.
+{% endblock %}
