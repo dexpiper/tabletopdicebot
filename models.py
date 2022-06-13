@@ -1,8 +1,11 @@
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 from typing import Tuple
 
-from pony.orm import Database  # , set_sql_debug
+from pony.orm import Database
 from pony.orm import PrimaryKey, Required, Optional, Set
 from pony.orm import db_session
+from pony.orm import select
 from pony.orm.core import ObjectNotFound, TransactionIntegrityError
 
 from common.helpers import modifier_dictionary, check_formula
@@ -14,6 +17,7 @@ db = Database()
 class User(db.Entity):
     user_id = PrimaryKey(int, auto=False)
     chars = Set('Char')
+    registered = Required(datetime, default=datetime.now)
 
     @classmethod
     @db_session
@@ -111,6 +115,7 @@ class Char(db.Entity):
     throws = Set('Throw')
     attributes = Set('Attribute')
     active = Required(bool, default=False)
+    registered = Required(datetime, default=datetime.now)
 
     @db_session
     def throw(self, name: str) -> str:
@@ -252,6 +257,62 @@ class Attribute(db.Entity):
         Get proper modifier for given characteristic value
         """
         return modifier_dictionary.get(value, 0)
+
+
+class Roll(db.Entity):
+    date = Required(datetime, default=datetime.now)
+
+    @classmethod
+    @db_session
+    def register(cls):
+        return cls()
+
+    @staticmethod
+    @db_session
+    def get_stats():
+        users_total = select(u for u in User).count()
+        chars_total = select(ch for ch in Char).count()
+        new_users_week = select(
+            u for u in User
+            if u.registered >= datetime.now() - timedelta(days=7)
+        ).count()
+        new_chars_week = select(
+            ch for ch in Char
+            if ch.registered >= datetime.now() - timedelta(days=7)
+        ).count()
+        throws_total = select(thr for thr in Throw).count()
+        attributes_total = select(attr for attr in Attribute).count()
+        rolls_total = select(roll for roll in Roll).count()
+        rolls_month = select(
+            roll for roll in Roll
+            if roll.date.month == datetime.now().date().month
+        ).count()
+        rolls_week = select(
+            roll for roll in Roll
+            if roll.date >= datetime.now() - timedelta(days=7)
+        ).count()
+        rolls_today = select(
+            roll for roll in Roll
+            if roll.date == datetime.now().date()
+        ).count()
+        return Statistics(
+            users_total, chars_total, new_users_week, new_chars_week,
+            throws_total, attributes_total, rolls_total, rolls_month,
+            rolls_week, rolls_today)
+
+
+@dataclass
+class Statistics:
+    users_total: int = 0
+    chars_total: int = 0
+    new_users_week: int = 0
+    new_chars_week: int = 0
+    throws_total: int = 0
+    attributes_total: int = 0
+    rolls_total: int = 0
+    rolls_month: int = 0
+    rolls_week: int = 0
+    rolls_today: int = 0
 
 
 if __name__ == '__main__':

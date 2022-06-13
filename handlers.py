@@ -6,7 +6,7 @@ from pony.orm import db_session
 
 import views
 from roller import DiceRoller
-from models import User
+from models import User, Roll
 from common.unicode import emoji
 
 
@@ -95,6 +95,13 @@ class BotHandlers:
         Bot sends general help page and basic bot info
         """
         send(message, views.hello(message.from_user.username))
+
+    @handler(append_to=handlers, commands=['stats'])
+    def send_stats(message):
+        """
+        Bot sends statistics
+        """
+        send(message, views.statistics(Roll.get_stats()))
 
     #
     # Managing user settings handlers
@@ -282,6 +289,7 @@ class BotHandlers:
         raw_formula = message.text[6:]  # removeprefix /roll
         roller = DiceRoller(raw_formula, telegram_user)
         hand = roller.hand
+        Roll.register()
         reply(message, views.roll(roller, hand))
 
     @handler(append_to=handlers, commands=['rollme'])
@@ -312,6 +320,7 @@ class BotHandlers:
         if formula:
             roller = DiceRoller(formula + addition, message.from_user)
             hand = roller.hand
+            Roll.register(user=user)
             reply(message, views.roll(roller, hand))
         else:
             error_text = (
@@ -399,4 +408,5 @@ def shorthand(message: object, dice: int):
     descr = message.text[8:] if dice > 9 else message.text[7:]
     roller = DiceRoller(f'/roll d{dice} ' + descr, message.from_user)
     hand = roller.hand
+    Roll.register()
     reply(message, views.roll(roller, hand))

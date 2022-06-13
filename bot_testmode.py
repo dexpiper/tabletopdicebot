@@ -1,3 +1,8 @@
+"""
+Used to run the bot in longpolling mode locally.
+SQLite in-memory database is in use.
+"""
+
 import os
 import logging
 
@@ -8,10 +13,6 @@ import models
 
 
 models.db.bind(provider='sqlite', filename='dice.sqlite', create_db=True)
-# db.bind(
-#    provider='postgres', user='dicebot', password='12345678',
-#    host='', database='postgres'
-# )
 models.db.generate_mapping(create_tables=True)
 # set_sql_debug(True)
 
