@@ -12,22 +12,30 @@ from flask import Flask
 import models
 
 
-models.db.bind(provider='sqlite', filename='dice.sqlite', create_db=True)
-models.db.generate_mapping(create_tables=True)
-# set_sql_debug(True)
-
 botlogger = logging.getLogger('botlogger')
 
 
 TOKEN = os.environ.get('TOKEN')
 URL = os.environ.get('URL')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
 if not TOKEN:
     botlogger.warning('TOKEN should be defined as system var')
 if not URL:
     botlogger.warning('URL should be defined as system var')
 
-# starting database
+# connecting to database
+
+creds, host_and_database = DATABASE_URL[11:].split('@')
+host_and_port, database = host_and_database.split('/')
+host, port = host_and_port.split(':')
+user, password = creds.split(':')
+
+models.db.bind(provider='postgres', user=user, password=password,
+               host=host, port=port, database=database)
+models.db.generate_mapping(create_tables=True)
+# set_sql_debug(True)
+
 botlogger.info('Starting database...')
 import models  # noqa E402
 
