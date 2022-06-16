@@ -330,7 +330,7 @@ class BotHandlers:
         if formula:
             roller = DiceRoller(formula + addition, message.from_user)
             hand = roller.hand
-            Roll.register(user=user)
+            Roll.register()
             reply(message, views.roll(roller, hand))
         else:
             error_text = (
