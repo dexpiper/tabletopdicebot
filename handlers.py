@@ -103,6 +103,13 @@ class BotHandlers:
         """
         send(message, views.statistics(Roll.get_stats()))
 
+    @handler(append_to=handlers, commands=['info'])
+    def send_info(message):
+        """
+        Bot sends info
+        """
+        send(message, views.info())
+
     #
     # Managing user settings handlers
     #

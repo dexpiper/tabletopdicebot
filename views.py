@@ -59,3 +59,11 @@ def statistics(stats):
     """
     template = env.get_template("statistics.jinja2")
     return template.render(stats=stats, emoji=emoji)
+
+
+def info():
+    """
+    Render info template
+    """
+    template = env.get_template("info.jinja2")
+    return template.render(emoji=emoji)

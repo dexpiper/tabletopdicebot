@@ -25,7 +25,6 @@ if not URL:
     botlogger.warning('URL should be defined as system var')
 
 # connecting to database
-
 creds, host_and_database = DATABASE_URL[11:].split('@')
 host_and_port, database = host_and_database.split('/')
 host, port = host_and_port.split(':')
@@ -34,7 +33,6 @@ user, password = creds.split(':')
 models.db.bind(provider='postgres', user=user, password=password,
                host=host, port=port, database=database)
 models.db.generate_mapping(create_tables=True)
-# set_sql_debug(True)
 
 botlogger.info('Starting database...')
 import models  # noqa E402
