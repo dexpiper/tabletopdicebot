@@ -1,0 +1,14 @@
+{% extends "commandhelp.jinja2" %}
+{% block usage %}
+    /roll 2d20 1d4 + 3 MyDexterity
+
+Used to make {{emoji.dice }} dice rolls. You can:
+
+    {{emoji.point}} use dices like <i>2d20</i>. First digit (before <i>d</i>) is the number of dices, second digit (after <i>d</i>) is the dice type. For example, with /roll 1d6 you will roll one fair 6-sided die, with 5d6 you'll get 5 such dice, and with 3d20 it would be three 20-sided dice roll.
+    {{emoji.point}} add one dice group to another. For example, 2d20 + 1d4 will roll two 20-sided dices, one 4-sided die and sum up the results.
+    {{emoji.point}} add simple modifiers like <i>+ 2</i> or <i>- 5</i> (or even <i>+ 2 - 1 + 3</i>). Please don't forget to use spaces between digits and math signs (supported only addition + and subtraction -).
+    {{emoji.point}} add your {{ emoji.char }} char's modifiers: <i>2d20 + $DEX - 2</i>. Here <i>$DEX</i> is an alias to char's <i>Dexterity</i> modifier. More: /addmod
+
+Also note you can roll custom predefined throws with /rollme command.
+
+{% endblock %}

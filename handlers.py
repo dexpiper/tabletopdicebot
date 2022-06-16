@@ -294,6 +294,9 @@ class BotHandlers:
         """
         telegram_user = message.from_user
         raw_formula = message.text[6:]  # removeprefix /roll
+        if not raw_formula:
+            send(message, views.command_help('/roll'))
+            return
         roller = DiceRoller(raw_formula, telegram_user)
         hand = roller.hand
         Roll.register()
